@@ -1,3 +1,8 @@
+const {
+  userNotificationPushTrigger,
+  userNotificationCalendarTrigger,
+} = require('./utils/notifications');
+
 describe(':ios: User Notifications', () => {
   it('Init from push notification', async () => {
     await device.launchApp({newInstance: true, userNotification: userNotificationPushTrigger});
@@ -25,8 +30,8 @@ describe(':ios: User Notifications', () => {
 
   it('Foreground push notifications', async () => {
     await device.launchApp({newInstance: true});
-    await device.sendUserNotification(userNotificationCalendarTrigger);
-    await expect(element(by.text('From calendar'))).toBeVisible();
+    await device.sendUserNotification(userNotificationPushTrigger);
+    await expect(element(by.text('From push'))).toBeVisible();
   });
 
   it('Foreground calendar notifications', async () => {
@@ -36,53 +41,24 @@ describe(':ios: User Notifications', () => {
   });
 });
 
-const userNotificationPushTrigger = {
-  "trigger": {
-    "type": "push"
-  },
-  "title": "From push",
-  "subtitle": "Subtitle",
-  "body": "Body",
-  "badge": 1,
-  "payload": {
-    "key1": "value1",
-    "key2": "value2"
-  },
-  "category": "com.example.category",
-  "content-available": 0,
-  "action-identifier": "default"
-};
+describe.only(':android: User Notifications', () => {
+  async function assertNotificationData(key, expectedValue) {
+    await expect(element(by.id(`notificationData-${key}.name`))).toBeVisible();
+    await expect(element(by.id(`notificationData-${key}.value`))).toHaveText(expectedValue);
+  }
 
-const userNotificationCalendarTrigger = {
-  "trigger": {
-    "type": "calendar",
-    "date-components": {
-      "era": 1,
-      "year": 2017,
-      "month": 1,
-      "day": 1,
-      "hour": 0,
-      "minute": 0,
-      "second": 0,
-      "weekday": 0,
-      "weekdayOrdinal": 0,
-      "quarter": 1,
-      "weekOfMonth": 1,
-      "weekOfYear": 1,
-      "leapMonth": false
-    },
-    "repeats": true
-  },
-  "title": "From calendar",
-  "subtitle": "Subtitle",
-  "body": "From calendar",
-  "badge": 1,
-  "payload": {
-    "key1": "value1",
-    "key2": "value2"
-  },
-  "category": "com.example.category",
-  "user-text": "Hi there!",
-  "content-available": 0,
-  "action-identifier": "default"
-};
+  it('should launch app with extras', async () => {
+    const googleProjectId = '284440699462';
+    const userNotification = {
+      from: googleProjectId,
+      userKey1: 'userValue1',
+      'gcm.notification.title': 'title',
+      'gcm.notification.body': 'body\nis\multiline',
+      'google.c.a.c_l': 'notification-name',
+    };
+    await device.launchApp({ newInstance: true, userNotification });
+    await element(by.text('Launch-Notification')).tap();
+    await expect(element(by.text('Launch-notification Data'))).toBeVisible();
+    await assertNotificationData('userKey1', 'userValue1');
+  });
+});

@@ -28,6 +28,14 @@ class example extends Component {
     Linking.addEventListener('url', (params) => this._handleOpenURL(params));
   }
 
+  async componentDidMount() {
+    const url = await Linking.getInitialURL();
+    if (url) {
+      console.log('App@didMount: Found pending URL', url);
+      this.setState({url: url});
+    }
+  }
+
   renderButton(title, onPressCallback) {
     return (
       <TouchableOpacity onPress={() => {
@@ -58,28 +66,12 @@ class example extends Component {
     );
   }
 
-  async componentDidMount() {
-    Linking.addEventListener('url', (params) => this._handleOpenURL(params));
-
-    const url = await Linking.getInitialURL();
-    if (url) {
-      console.log('App@didMount: Found pending URL', url);
-      this.setState({url: url});
-    }
+  renderInlineSeparator() {
+    return <Text style={{width: 10}}> | </Text>;
   }
 
   render() {
-    if (this.state.notification) {
-      console.log("App@render: rendering a notification", this.state.notification);
-      if (this.state.notification.title) {
-        return this.renderText(this.state.notification.title);
-      } else {
-        return this.renderText(this.state.notification);
-      }
-
-    }
-
-    else if (this.state.url) {
+    if (this.state.url) {
       console.log("App@render: rendering a URL:", this.state.url);
       return this.renderText(this.state.url);
     }
@@ -117,20 +109,24 @@ class example extends Component {
               // Note: this crashes the native-modules thread (and thus an *uncaught* exception, on Android).
               throw new Error('Simulated Crash');
             })}
-            {isAndroid && <Text style={{width: 10}}> | </Text>}
+            {isAndroid && this.renderInlineSeparator()}
             {isAndroid && this.renderButton('UI Crash', () => {
               // Killing main-thread while handling a tap will evidently cause
               // the tap-action itself to fail and thus for an error to be responded
               NativeModule.crashMainThread();
             })}
-            {isAndroid && <Text style={{width: 10}}> | </Text>}
+            {isAndroid && this.renderInlineSeparator()}
             {isAndroid && this.renderButton('ANR', () => {
               NativeModule.chokeMainThread();
             })}
           </View>
 
           {this.renderScreenButton('Shake', Screens.ShakeScreen)}
-          {isAndroid && this.renderScreenButton('Launch Args', Screens.LaunchArgsScreen)}
+          <View style={{flexDirection: 'row', justifyContent: 'center'}}>
+            {isAndroid && this.renderScreenButton('Launch Args', Screens.LaunchArgsScreen)}
+            {isAndroid && this.renderInlineSeparator()}
+            {isAndroid && this.renderScreenButton('Launch-Notification', Screens.LaunchNotificationScreen)}
+          </View>
         </View>
       );
     }
@@ -144,7 +140,7 @@ class example extends Component {
     return (
       <View style={{flexDirection: 'row', justifyContent: 'center'}}>
         {this.renderScreenButton('RN Animations', Screens.RNAnimationsScreen)}
-        {isAndroid && <Text style={{width: 10}}> | </Text>}
+        {isAndroid && this.renderInlineSeparator()}
         {isAndroid && this.renderScreenButton('Native Animation', Screens.NativeAnimationsScreen)}
       </View>
     );

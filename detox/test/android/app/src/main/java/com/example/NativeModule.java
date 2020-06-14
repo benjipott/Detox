@@ -1,6 +1,7 @@
 package com.example;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,7 +18,6 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.WritableMap;
 
 public class NativeModule extends ReactContextBaseJavaModule {
 
@@ -78,20 +78,19 @@ public class NativeModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void getLaunchArguments(Promise promise) {
-        final Activity currentActivity = getCurrentActivity();
-        if (currentActivity != null) {
-            final Bundle launchArgs = currentActivity.getIntent().getBundleExtra("launchArgs");
-            if (launchArgs != null) {
-                final WritableMap launchArgsMap = Arguments.fromBundle(launchArgs);
-                promise.resolve(launchArgsMap);
-                return;
-            }
-        }
-        promise.resolve(Arguments.createMap());
+        Bundle extras = getIntentExtras("launchArgs");
+        promise.resolve(Arguments.fromBundle(extras));
     }
 
     @ReactMethod
-    public void spyLongTaps(final String testID) {
+    public void parseNotificationData(String innerKey, Promise promise) {
+        Bundle extras = getIntentExtras(innerKey);
+        extras.remove("launchArgs");
+        promise.resolve(Arguments.fromBundle(extras));
+    }
+
+    @ReactMethod
+    public void spyLongTaps(String testID) {
         new ViewSpies.LongTapCrasher(testID).attach();
     }
 
@@ -112,5 +111,20 @@ public class NativeModule extends ReactContextBaseJavaModule {
         reactContext.getCurrentActivity().runOnUiThread(() -> {
             throw new RuntimeException("Simulated crash (native)");
         });
+    }
+
+    private Bundle getIntentExtras(String bundleKey) {
+        final Activity currentActivity = getCurrentActivity();
+        if (currentActivity == null) {
+            return new Bundle();
+        }
+
+        final Intent intent = currentActivity.getIntent();
+        final Bundle extras = (bundleKey == null ? intent.getExtras() : intent.getBundleExtra(bundleKey));
+        if (extras == null) {
+            return new Bundle();
+        }
+
+        return extras;
     }
 }
